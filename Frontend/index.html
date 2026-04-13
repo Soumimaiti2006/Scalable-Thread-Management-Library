@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High Performance Thread Visualizer</title>
+    <title>HPC Thread Management Console</title>
     
-    <meta name="description" content="A scalable thread management library visualizer with real-time performance metrics and dynamic concurrency tuning.">
+    <meta name="description" content="Ultra-Premium Scalable Thread Management Dashboard for High-Performance Computing.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,81 +18,81 @@
 
     <div class="layout-wrapper">
         <header>
-            <h1>Scalable Thread <span>Manager</span></h1>
-            <p>High-Performance Computing Library Visualizer</p>
+            <h1>HPC <span>Manager</span></h1>
+            <p>High Performance Scaling Console</p>
         </header>
 
         <main>
+            <!-- Control Hub -->
             <section class="controls-card">
-                <div class="input-group">
-                    <input id="taskInput" type="text" placeholder="New Task Name..." aria-label="Task Name">
-                    <button onclick="addTask()" class="btn-primary">Add Task</button>
+                <div class="input-block">
+                    <input id="taskInput" type="text" placeholder="INITIALIZE NEW TASK..." aria-label="Task Name">
                 </div>
                 
-                <div class="config-group">
-                    <div class="slider-container">
-                        <label for="concurrencySlider">Threads: <span id="concurrencyValue">3</span></label>
-                        <input type="range" id="concurrencySlider" min="1" max="20" value="3" oninput="updateConcurrency(this.value)">
-                    </div>
+                <div class="config-block">
+                    <label>CONCURRENCY LIMIT: <span id="concurrencyValue">3</span></label>
+                    <input type="range" id="concurrencySlider" class="slider-styled" min="1" max="50" value="3" oninput="updateConcurrency(this.value)">
                 </div>
 
-                <div class="action-group">
-                    <button onclick="startSimulation()" class="btn-success">Start Threads</button>
-                    <button onclick="resetAll()" class="btn-outline">Reset Library</button>
+                <div class="btns-group">
+                    <button onclick="addTask()" class="btn-premium btn-blue">Deploy</button>
+                    <button onclick="startSimulation()" class="btn-premium btn-green">Execute</button>
+                    <button onclick="resetAll()" class="btn-premium btn-outline">Purge</button>
                 </div>
             </section>
 
+            <!-- Monitoring Grid -->
             <section class="visualizer-grid">
-                <div class="box queue-box">
-                    <div class="box-header">
-                        <span class="status-dot warning"></span>
+                <div class="col">
+                    <div class="col-header">
+                        <span class="dot dot-q"></span>
                         <h3>Queue</h3>
                     </div>
-                    <div id="queue" class="task-list"></div>
+                    <div id="queue" class="task-container"></div>
                 </div>
 
-                <div class="box running-box">
-                    <div class="box-header">
-                        <span class="status-dot success"></span>
-                        <h3>Pool Workers</h3>
+                <div class="col">
+                    <div class="col-header">
+                        <span class="dot dot-r"></span>
+                        <h3>Active Workers</h3>
                     </div>
-                    <div id="running" class="task-list"></div>
+                    <div id="running" class="task-container"></div>
                 </div>
 
-                <div class="box completed-box">
-                    <div class="box-header">
-                        <span class="status-dot info"></span>
-                        <h3>Finished</h3>
+                <div class="col">
+                    <div class="col-header">
+                        <span class="dot dot-c"></span>
+                        <h3>Completed</h3>
                     </div>
-                    <div id="completed" class="task-list"></div>
+                    <div id="completed" class="task-container"></div>
                 </div>
             </section>
 
-            <section class="stats-dashboard">
-                <div class="stat-card">
-                    <span class="stat-label">Total Volume</span>
-                    <span id="total" class="stat-value">0</span>
+            <!-- Metrics Bento -->
+            <section class="stats-grid">
+                <div class="stat-item">
+                    <div id="total" class="stat-val">0</div>
+                    <div class="stat-lbl">Processed Units</div>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-label">TPM (Throughput)</span>
-                    <span id="throughput" class="stat-value">0</span>
+                <div class="stat-item">
+                    <div id="throughput" class="stat-val">0</div>
+                    <div class="stat-lbl">Throughput (TPM)</div>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-label">Avg. Latency</span>
-                    <span id="latency" class="stat-value">0s</span>
+                <div class="stat-item">
+                    <div id="latency" class="stat-val">0s</div>
+                    <div class="stat-lbl">Avg Latency</div>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-label">System Load</span>
-                    <div class="load-bar-container">
-                        <div id="loadBar" class="load-bar" style="width: 0%"></div>
+                <div class="stat-item">
+                    <div class="load-viz">
+                        <div id="loadBar" class="load-fill" style="width: 0%"></div>
                     </div>
-                    <span id="loadText" class="stat-value-sm">0%</span>
+                    <div id="loadText" class="stat-lbl" style="color: var(--status-success)">0% System Load</div>
                 </div>
             </section>
         </main>
 
         <footer>
-            <p>&copy; 2026 Scalable Thread Management Library | High-Performance Computing Edition</p>
+            <p>HPC EDITION // PROJECT COMPLETED // SECURE LINK ESTABLISHED</p>
         </footer>
     </div>
 

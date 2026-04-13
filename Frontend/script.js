@@ -1,5 +1,5 @@
 /**
- * Thread Management Visualizer - HPC Integration
+ * HPC Thread Management Console - Integrated Logic
  */
 
 const API_BASE = "http://localhost:5000";
@@ -10,6 +10,9 @@ let completedTasks = [];
 let pollInterval = null;
 const POLL_RATE = 500; 
 
+/**
+ * Task Deployment
+ */
 async function addTask() {
     const input = document.getElementById("taskInput");
     const taskName = input.value.trim();
@@ -29,11 +32,38 @@ async function addTask() {
         });
         input.value = "";
         fetchStatus();
-    } catch (e) { console.error("Network Error", e); }
+    } catch (e) { console.error("Communication Failure", e); }
 }
 
 /**
- * Commands the backend to terminate a specific thread/task.
+ * Core Orchestration
+ */
+async function startSimulation() {
+    try {
+        await fetch(`${API_BASE}/start`);
+        if (!pollInterval) {
+            pollInterval = setInterval(fetchStatus, POLL_RATE);
+            startLocalInterpolation();
+        }
+    } catch (e) { console.error("Execution Error", e); }
+}
+
+/**
+ * Dynamic Concurrency Tuning
+ */
+async function updateConcurrency(value) {
+    document.getElementById("concurrencyValue").innerText = value;
+    try {
+        await fetch(`${API_BASE}/config`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ max_workers: parseInt(value) })
+        });
+    } catch (e) { console.error("Tuning Failed", e); }
+}
+
+/**
+ * Task Termination
  */
 async function cancelTask(taskId) {
     try {
@@ -43,50 +73,39 @@ async function cancelTask(taskId) {
             body: JSON.stringify({ id: taskId })
         });
         await fetchStatus();
-    } catch (e) { console.error("Cancel Error", e); }
+    } catch (e) { console.error("Purge Error", e); }
 }
 
-async function updateConcurrency(value) {
-    document.getElementById("concurrencyValue").innerText = value;
-    try {
-        await fetch(`${API_BASE}/config`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ max_workers: parseInt(value) })
-        });
-    } catch (e) { console.error("Config Error", e); }
-}
-
-async function startSimulation() {
-    try {
-        await fetch(`${API_BASE}/start`);
-        if (!pollInterval) {
-            pollInterval = setInterval(fetchStatus, POLL_RATE);
-            startLocalInterpolation();
-        }
-    } catch (e) { console.error("Start Error", e); }
-}
-
+/**
+ * Telemetry Sync
+ */
 async function fetchStatus() {
     try {
         const res = await fetch(`${API_BASE}/status`);
         const data = await res.json();
+        
         taskQueue = data.queue;
         completedTasks = data.completed;
         syncRunningState(data.running);
+        
         updateMetricsUI(data.metrics);
         updateUI();
-    } catch (e) { console.error("Status Error", e); }
+    } catch (e) { console.error("Sync Failure", e); }
 }
 
 function updateMetricsUI(metrics) {
+    document.getElementById("total").innerText = taskQueue.length + runningTasks.length + completedTasks.length;
     document.getElementById("throughput").innerText = metrics.throughput;
     document.getElementById("latency").innerText = `${metrics.avg_latency}s`;
+    
     const loadPercent = Math.round(metrics.system_load * 100);
     document.getElementById("loadBar").style.width = `${loadPercent}%`;
-    document.getElementById("loadText").innerText = `${loadPercent}%`;
+    document.getElementById("loadText").innerText = `${loadPercent}% SYSTEM LOAD`;
 }
 
+/**
+ * Animation Engine (Real-time Interpolation)
+ */
 function syncRunningState(newRunningTasks) {
     runningTasks = newRunningTasks.map(task => {
         const existing = runningTasks.find(t => t.id === task.id);
@@ -111,6 +130,9 @@ function startLocalInterpolation() {
     requestAnimationFrame(loop);
 }
 
+/**
+ * System Purge
+ */
 async function resetAll() {
     await fetch(`${API_BASE}/reset`, { method: "POST" });
     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
@@ -119,11 +141,13 @@ async function resetAll() {
     updateMetricsUI({ throughput: 0, avg_latency: 0, system_load: 0, concurrency: 3 });
 }
 
+/**
+ * Smart DOM Patching
+ */
 function updateUI() {
-    syncTaskList("queue", taskQueue, false, true); // show cancel
-    syncTaskList("running", runningTasks, true, true); // show cancel
+    syncTaskList("queue", taskQueue, false, true);
+    syncTaskList("running", runningTasks, true, true);
     syncTaskList("completed", completedTasks, false, false);
-    document.getElementById("total").innerText = taskQueue.length + runningTasks.length + completedTasks.length;
 }
 
 function syncTaskList(containerId, tasks, showProgress = false, showCancel = false) {
@@ -131,38 +155,47 @@ function syncTaskList(containerId, tasks, showProgress = false, showCancel = fal
     if (!container) return;
     const taskIds = new Set(tasks.map(t => t.id));
 
-    Array.from(container.querySelectorAll('.task-item')).forEach(node => {
-        if (!taskIds.has(node.dataset.id)) node.remove();
+    // Cleanup expired nodes
+    Array.from(container.querySelectorAll('.task-card')).forEach(node => {
+        if (!taskIds.has(node.dataset.id)) {
+            node.style.opacity = '0';
+            node.style.transform = 'scale(0.9) translateY(10px)';
+            setTimeout(() => node.remove(), 500);
+        }
     });
 
+    // Patch or create new nodes
     tasks.forEach(task => {
-        let node = container.querySelector(`.task-item[data-id="${task.id}"]`);
+        let node = container.querySelector(`.task-card[data-id="${task.id}"]`);
+        
         if (!node) {
             node = document.createElement('div');
-            node.className = 'task-item';
+            node.className = 'task-card';
             node.dataset.id = task.id;
             node.innerHTML = `
-                <div class="task-info">
-                    <span class="task-name">${task.name}</span>
+                <div class="task-row">
+                    <span class="task-title">${task.name}</span>
                     <div class="task-actions">
-                        <span class="task-percent"></span>
-                        ${showCancel ? `<button class="btn-cancel" onclick="cancelTask('${task.id}')">✕</button>` : ""}
+                        <span class="task-meta-val"></span>
+                        ${showCancel ? `<button class="task-cancel" onclick="cancelTask('${task.id}')">✕</button>` : ""}
                     </div>
                 </div>
-                <div class="progress-container"><div class="progress-bar"></div></div>
+                <div class="task-progress-wrap">
+                    <div class="task-bar-bg"><div class="task-bar-fill" style="width: 0%"></div></div>
+                    <div class="task-meta">INIT_STATE</div>
+                </div>
             `;
             container.appendChild(node);
         }
-        
+
         if (showProgress) {
-            node.querySelector('.progress-container').style.display = 'block';
-            node.querySelector('.progress-bar').style.width = `${task.progress}%`;
-            node.querySelector('.task-percent').innerText = `${Math.round(task.progress)}%`;
-            node.classList.add('is-running');
+            node.querySelector('.task-progress-wrap').style.display = 'block';
+            node.querySelector('.task-bar-fill').style.width = `${task.progress}%`;
+            node.querySelector('.task-meta').innerText = `${Math.round(task.progress)}%_STABLE`;
+            node.querySelector('.task-meta-val').innerText = `EXECUTING`;
         } else {
-            node.querySelector('.progress-container').style.display = 'none';
-            node.querySelector('.task-percent').innerText = '';
-            node.classList.remove('is-running');
+            node.querySelector('.task-progress-wrap').style.display = 'none';
+            node.querySelector('.task-meta-val').innerText = containerId === 'completed' ? 'PASS' : 'WAIT';
         }
     });
 }
