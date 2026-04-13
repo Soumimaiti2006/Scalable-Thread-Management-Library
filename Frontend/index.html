@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Management Visualizer | Efficient Task Simulation</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="A real-time visualization tool for thread management, showing waiting queues, running tasks, and completion tracking.">
+    <meta name="keywords" content="thread management, visualizer, operating system, simulation, interactive tool">
+    <meta name="author" content="Thread Management Library Team">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="Thread Management Visualizer">
+    <meta property="og:description" content="Interactive visualization of multi-threaded task management.">
+    <meta property="og:type" content="website">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="layout-wrapper">
+        <header>
+            <h1>Thread Management <span>Visualizer</span></h1>
+            <p>Simulate and observe scalable task distribution in real-time.</p>
+        </header>
+
+        <main>
+            <section class="controls-card">
+                <div class="input-group">
+                    <input id="taskInput" type="text" placeholder="Enter Task Name..." aria-label="Task Name">
+                    <button id="addBtn" onclick="addTask()" class="btn-primary">Add Task</button>
+                </div>
+                <div class="action-group">
+                    <button onclick="startSimulation()" class="btn-success">Start Simulation</button>
+                    <button onclick="resetAll()" class="btn-outline">Reset All</button>
+                </div>
+            </section>
+
+            <section class="visualizer-grid">
+                <div class="box queue-box">
+                    <div class="box-header">
+                        <span class="status-dot warning"></span>
+                        <h3>Waiting Queue</h3>
+                    </div>
+                    <div id="queue" class="task-list"></div>
+                </div>
+
+                <div class="box running-box">
+                    <div class="box-header">
+                        <span class="status-dot success"></span>
+                        <h3>Running Tasks</h3>
+                    </div>
+                    <div id="running" class="task-list"></div>
+                </div>
+
+                <div class="box completed-box">
+                    <div class="box-header">
+                        <span class="status-dot info"></span>
+                        <h3>Completed Tasks</h3>
+                    </div>
+                    <div id="completed" class="task-list"></div>
+                </div>
+            </section>
+
+            <section class="stats-dashboard">
+                <div class="stat-card">
+                    <span class="stat-label">Total Tasks</span>
+                    <span id="total" class="stat-value">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Efficiency</span>
+                    <span id="done" class="stat-value">0</span>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Scalable Thread Management Library. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
