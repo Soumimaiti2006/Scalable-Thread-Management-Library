@@ -10,19 +10,15 @@ let completedTasks = [];
 let pollInterval = null;
 const POLL_RATE = 500; 
 
-/**
- * Adds a new task to the HPC backend.
- */
 async function addTask() {
     const input = document.getElementById("taskInput");
     const taskName = input.value.trim();
-
     if (!taskName) return;
 
     const newTask = {
         id: `task-${Date.now()}`,
         name: taskName,
-        duration: Math.floor(Math.random() * 3000) + 1500 // 1.5 - 4.5s
+        duration: Math.floor(Math.random() * 3000) + 1500
     };
 
     try {
@@ -37,8 +33,19 @@ async function addTask() {
 }
 
 /**
- * Updates the concurrency limit (ThreadPool size) dynamically.
+ * Commands the backend to terminate a specific thread/task.
  */
+async function cancelTask(taskId) {
+    try {
+        await fetch(`${API_BASE}/cancel`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: taskId })
+        });
+        await fetchStatus();
+    } catch (e) { console.error("Cancel Error", e); }
+}
+
 async function updateConcurrency(value) {
     document.getElementById("concurrencyValue").innerText = value;
     try {
@@ -50,9 +57,6 @@ async function updateConcurrency(value) {
     } catch (e) { console.error("Config Error", e); }
 }
 
-/**
- * Starts the simulation polling.
- */
 async function startSimulation() {
     try {
         await fetch(`${API_BASE}/start`);
@@ -63,44 +67,26 @@ async function startSimulation() {
     } catch (e) { console.error("Start Error", e); }
 }
 
-/**
- * Fetches status and performance metrics.
- */
 async function fetchStatus() {
     try {
         const res = await fetch(`${API_BASE}/status`);
         const data = await res.json();
-
         taskQueue = data.queue;
         completedTasks = data.completed;
         syncRunningState(data.running);
-        
         updateMetricsUI(data.metrics);
         updateUI();
     } catch (e) { console.error("Status Error", e); }
 }
 
-/**
- * Updates the new performance metric cards.
- */
 function updateMetricsUI(metrics) {
     document.getElementById("throughput").innerText = metrics.throughput;
     document.getElementById("latency").innerText = `${metrics.avg_latency}s`;
-    
-    // System Load Visualization
     const loadPercent = Math.round(metrics.system_load * 100);
-    const loadBar = document.getElementById("loadBar");
-    loadBar.style.width = `${loadPercent}%`;
+    document.getElementById("loadBar").style.width = `${loadPercent}%`;
     document.getElementById("loadText").innerText = `${loadPercent}%`;
-    
-    // Sync slider if changed from elsewhere
-    document.getElementById("concurrencySlider").value = metrics.concurrency;
-    document.getElementById("concurrencyValue").innerText = metrics.concurrency;
 }
 
-/**
- * Boilerplate for state management & interpolation
- */
 function syncRunningState(newRunningTasks) {
     runningTasks = newRunningTasks.map(task => {
         const existing = runningTasks.find(t => t.id === task.id);
@@ -130,18 +116,17 @@ async function resetAll() {
     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
     taskQueue = []; runningTasks = []; completedTasks = [];
     updateUI();
-    // Reset Metrics
     updateMetricsUI({ throughput: 0, avg_latency: 0, system_load: 0, concurrency: 3 });
 }
 
 function updateUI() {
-    syncTaskList("queue", taskQueue);
-    syncTaskList("running", runningTasks, true);
-    syncTaskList("completed", completedTasks);
+    syncTaskList("queue", taskQueue, false, true); // show cancel
+    syncTaskList("running", runningTasks, true, true); // show cancel
+    syncTaskList("completed", completedTasks, false, false);
     document.getElementById("total").innerText = taskQueue.length + runningTasks.length + completedTasks.length;
 }
 
-function syncTaskList(containerId, tasks, showProgress = false) {
+function syncTaskList(containerId, tasks, showProgress = false, showCancel = false) {
     const container = document.getElementById(containerId);
     if (!container) return;
     const taskIds = new Set(tasks.map(t => t.id));
@@ -159,18 +144,24 @@ function syncTaskList(containerId, tasks, showProgress = false) {
             node.innerHTML = `
                 <div class="task-info">
                     <span class="task-name">${task.name}</span>
-                    <span class="task-percent"></span>
+                    <div class="task-actions">
+                        <span class="task-percent"></span>
+                        ${showCancel ? `<button class="btn-cancel" onclick="cancelTask('${task.id}')">✕</button>` : ""}
+                    </div>
                 </div>
                 <div class="progress-container"><div class="progress-bar"></div></div>
             `;
             container.appendChild(node);
         }
+        
         if (showProgress) {
+            node.querySelector('.progress-container').style.display = 'block';
             node.querySelector('.progress-bar').style.width = `${task.progress}%`;
             node.querySelector('.task-percent').innerText = `${Math.round(task.progress)}%`;
             node.classList.add('is-running');
         } else {
             node.querySelector('.progress-container').style.display = 'none';
+            node.querySelector('.task-percent').innerText = '';
             node.classList.remove('is-running');
         }
     });
