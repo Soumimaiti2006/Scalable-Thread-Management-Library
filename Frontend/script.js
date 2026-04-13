@@ -1,93 +1,151 @@
 /**
- * Thread Management Visualizer - Core Logic
- * Handles task queuing, execution simulation, and UI synchronization.
+ * Thread Management Visualizer - Backend Integrated Logic
+ * Handles real-time synchronization with the Python Flask server.
  */
 
+const API_BASE = "http://localhost:5000";
 let taskQueue = [];
 let runningTasks = [];
 let completedTasks = [];
 
-let simulationInterval = null;
-const MAX_THREADS = 3;
-const TICK_RATE = 50; // ms between updates
+let pollInterval = null;
+const POLL_RATE = 500; // ms between server state fetches
+const ANIMATION_RATE = 50; // ms for local progress bar interpolation
 
 /**
- * Adds a new task to the waiting queue.
+ * Adds a new task by sending it to the Python backend.
  */
-function addTask() {
+async function addTask() {
     const input = document.getElementById("taskInput");
     const taskName = input.value.trim();
 
     if (!taskName) return;
 
     const newTask = {
-        id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `task-${Date.now()}`,
         name: taskName,
-        progress: 0,
-        duration: Math.floor(Math.random() * 3000) + 2000, // 2-5 seconds
-        startTime: null
+        duration: Math.floor(Math.random() * 3000) + 2000 // 2-5s
     };
 
-    taskQueue.push(newTask);
-    input.value = "";
-    updateUI();
-}
-
-/**
- * Starts the simulation loop.
- */
-function startSimulation() {
-    if (simulationInterval) return;
-
-    simulationInterval = setInterval(() => {
-        while (runningTasks.length < MAX_THREADS && taskQueue.length > 0) {
-            const task = taskQueue.shift();
-            task.startTime = Date.now();
-            runningTasks.push(task);
-        }
-
-        runningTasks.forEach(task => {
-            const elapsed = Date.now() - task.startTime;
-            task.progress = Math.min(100, (elapsed / task.duration) * 100);
+    try {
+        const response = await fetch(`${API_BASE}/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newTask)
         });
 
-        const finished = runningTasks.filter(t => t.progress >= 100);
-        finished.forEach(task => {
-            runningTasks = runningTasks.filter(t => t.id !== task.id);
-            completedTasks.push(task);
-        });
-
-        updateUI();
-
-        if (taskQueue.length === 0 && runningTasks.length === 0) {
-            stopSimulation();
+        if (response.ok) {
+            input.value = "";
+            await fetchStatus(); // Refresh immediately
         }
-    }, TICK_RATE);
-}
-
-function stopSimulation() {
-    if (simulationInterval) {
-        clearInterval(simulationInterval);
-        simulationInterval = null;
+    } catch (error) {
+        console.error("Failed to add task:", error);
+        alert("Backend server is not reachable. Is it running?");
     }
 }
 
-function resetAll() {
-    stopSimulation();
-    taskQueue = [];
-    runningTasks = [];
-    completedTasks = [];
-    
-    // Clear the DOM lists manually for a clean slate
-    ["queue", "running", "completed"].forEach(id => {
-        document.getElementById(id).innerHTML = "";
-    });
-    
-    updateUI();
+/**
+ * Commands the backend to start processing threads and begins polling.
+ */
+async function startSimulation() {
+    try {
+        await fetch(`${API_BASE}/start`);
+        
+        if (!pollInterval) {
+            pollInterval = setInterval(fetchStatus, POLL_RATE);
+            // Start the local interpolation loop for smooth progress bars
+            startLocalInterpolation();
+        }
+    } catch (error) {
+        console.error("Failed to start simulation:", error);
+    }
 }
 
 /**
- * Renders the state to the DOM using persistent nodes.
+ * Fetches the current state of all tasks from the server.
+ */
+async function fetchStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/status`);
+        const data = await response.json();
+
+        // Update local state arrays
+        taskQueue = data.queue;
+        completedTasks = data.completed;
+
+        // Sync running tasks while preserving local interpolation start times
+        syncRunningState(data.running);
+        
+        updateUI();
+    } catch (error) {
+        console.error("Polling error:", error);
+    }
+}
+
+/**
+ * Preserves local start times for running tasks to keep animations smooth.
+ */
+function syncRunningState(newRunningTasks) {
+    const freshRunning = newRunningTasks.map(task => {
+        const existing = runningTasks.find(t => t.id === task.id);
+        return {
+            ...task,
+            // If already running, keep the local startTime, else mark as just started
+            startTime: existing ? existing.startTime : Date.now(),
+            progress: existing ? existing.progress : 0
+        };
+    });
+
+    runningTasks = freshRunning;
+}
+
+/**
+ * Smoothly interpolates progress bars on the client side between server polls.
+ */
+function startLocalInterpolation() {
+    const loop = () => {
+        if (!pollInterval) return;
+
+        runningTasks.forEach(task => {
+            const elapsed = Date.now() - task.startTime;
+            task.progress = Math.min(99, (elapsed / task.duration) * 100); // Max 99% until server confirms completion
+        });
+
+        updateUI();
+        requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+}
+
+/**
+ * Resets both server and client state.
+ */
+async function resetAll() {
+    try {
+        await fetch(`${API_BASE}/reset`, { method: "POST" });
+        
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+
+        taskQueue = [];
+        runningTasks = [];
+        completedTasks = [];
+
+        // Clear the DOM lists
+        ["queue", "running", "completed"].forEach(id => {
+            document.getElementById(id).innerHTML = "";
+        });
+
+        updateUI();
+    } catch (error) {
+        console.error("Failed to reset:", error);
+    }
+}
+
+/**
+ * Rendering Logic (Smart DOM Syncing)
  */
 function updateUI() {
     syncTaskList("queue", taskQueue);
@@ -100,27 +158,19 @@ function updateUI() {
     document.getElementById("done").innerText = completedTasks.length;
 }
 
-/**
- * Synchronizes the DOM list with the task array without overwriting existing nodes.
- */
 function syncTaskList(containerId, tasks, showProgress = false) {
     const container = document.getElementById(containerId);
     const existingNodes = Array.from(container.querySelectorAll('.task-item'));
     const taskIds = new Set(tasks.map(t => t.id));
 
-    // 1. Remove orphaned nodes
     existingNodes.forEach(node => {
-        if (!taskIds.has(node.dataset.id)) {
-            node.remove();
-        }
+        if (!taskIds.has(node.dataset.id)) node.remove();
     });
 
-    // 2. Add or Update nodes
-    tasks.forEach((task, index) => {
+    tasks.forEach(task => {
         let node = container.querySelector(`.task-item[data-id="${task.id}"]`);
         
         if (!node) {
-            // Create new node if it doesn't exist
             node = document.createElement('div');
             node.className = 'task-item';
             node.dataset.id = task.id;
@@ -133,17 +183,9 @@ function syncTaskList(containerId, tasks, showProgress = false) {
                     <div class="progress-bar"></div>
                 </div>
             `;
-            
-            // Handle initial state for progress bars
-            if (!showProgress) {
-                node.querySelector('.progress-container').style.display = 'none';
-            }
-
-            // Append in correct order (or just append if index management is too complex for this demo)
             container.appendChild(node);
         }
 
-        // 3. Update Existing Node
         if (showProgress) {
             node.querySelector('.progress-container').style.display = 'block';
             node.querySelector('.progress-bar').style.width = `${task.progress}%`;
