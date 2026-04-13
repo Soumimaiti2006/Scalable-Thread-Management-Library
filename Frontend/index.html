@@ -25,8 +25,21 @@
         <main>
             <!-- Control Hub -->
             <section class="controls-card">
-                <div class="input-block">
-                    <input id="taskInput" type="text" placeholder="INITIALIZE NEW TASK..." aria-label="Task Name">
+                <div class="deploy-group">
+                    <div class="input-block">
+                        <label>Task Initialization</label>
+                        <input id="taskInput" type="text" placeholder="TASK NAME..." aria-label="Task Name">
+                    </div>
+                    
+                    <div class="priority-block">
+                        <label>Execution Priority</label>
+                        <div class="priority-selector">
+                            <button class="p-btn" data-p="0" onclick="setPriority(0)">CRIT</button>
+                            <button class="p-btn" data-p="1" onclick="setPriority(1)">HIGH</button>
+                            <button class="p-btn active" data-p="2" onclick="setPriority(2)">NORM</button>
+                            <button class="p-btn" data-p="3" onclick="setPriority(3)">LOW</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="config-block">

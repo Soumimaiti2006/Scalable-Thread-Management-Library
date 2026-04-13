@@ -6,9 +6,27 @@ const API_BASE = "http://localhost:5000";
 let taskQueue = [];
 let runningTasks = [];
 let completedTasks = [];
+let selectedPriority = 2; // Default: NORM
 
 let pollInterval = null;
 const POLL_RATE = 500; 
+
+/**
+ * Priority UI Handling
+ */
+function setPriority(p) {
+    selectedPriority = p;
+    document.querySelectorAll('.p-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.p) === p);
+    });
+}
+
+const PRIORITY_MAP = {
+    0: { label: 'CRIT', class: 'badge-crit' },
+    1: { label: 'HIGH', class: 'badge-high' },
+    2: { label: 'NORM', class: 'badge-norm' },
+    3: { label: 'LOW', class: 'badge-low' }
+};
 
 /**
  * Task Deployment
@@ -21,7 +39,8 @@ async function addTask() {
     const newTask = {
         id: `task-${Date.now()}`,
         name: taskName,
-        duration: Math.floor(Math.random() * 3000) + 1500
+        duration: Math.floor(Math.random() * 3000) + 1500,
+        priority: selectedPriority
     };
 
     try {
@@ -48,9 +67,6 @@ async function startSimulation() {
     } catch (e) { console.error("Execution Error", e); }
 }
 
-/**
- * Dynamic Concurrency Tuning
- */
 async function updateConcurrency(value) {
     document.getElementById("concurrencyValue").innerText = value;
     try {
@@ -62,9 +78,6 @@ async function updateConcurrency(value) {
     } catch (e) { console.error("Tuning Failed", e); }
 }
 
-/**
- * Task Termination
- */
 async function cancelTask(taskId) {
     try {
         await fetch(`${API_BASE}/cancel`, {
@@ -76,9 +89,6 @@ async function cancelTask(taskId) {
     } catch (e) { console.error("Purge Error", e); }
 }
 
-/**
- * Telemetry Sync
- */
 async function fetchStatus() {
     try {
         const res = await fetch(`${API_BASE}/status`);
@@ -94,7 +104,6 @@ async function fetchStatus() {
 }
 
 function updateMetricsUI(metrics) {
-    document.getElementById("total").innerText = taskQueue.length + runningTasks.length + completedTasks.length;
     document.getElementById("throughput").innerText = metrics.throughput;
     document.getElementById("latency").innerText = `${metrics.avg_latency}s`;
     
@@ -103,9 +112,6 @@ function updateMetricsUI(metrics) {
     document.getElementById("loadText").innerText = `${loadPercent}% SYSTEM LOAD`;
 }
 
-/**
- * Animation Engine (Real-time Interpolation)
- */
 function syncRunningState(newRunningTasks) {
     runningTasks = newRunningTasks.map(task => {
         const existing = runningTasks.find(t => t.id === task.id);
@@ -130,9 +136,6 @@ function startLocalInterpolation() {
     requestAnimationFrame(loop);
 }
 
-/**
- * System Purge
- */
 async function resetAll() {
     await fetch(`${API_BASE}/reset`, { method: "POST" });
     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
@@ -141,9 +144,6 @@ async function resetAll() {
     updateMetricsUI({ throughput: 0, avg_latency: 0, system_load: 0, concurrency: 3 });
 }
 
-/**
- * Smart DOM Patching
- */
 function updateUI() {
     syncTaskList("queue", taskQueue, false, true);
     syncTaskList("running", runningTasks, true, true);
@@ -155,7 +155,6 @@ function syncTaskList(containerId, tasks, showProgress = false, showCancel = fal
     if (!container) return;
     const taskIds = new Set(tasks.map(t => t.id));
 
-    // Cleanup expired nodes
     Array.from(container.querySelectorAll('.task-card')).forEach(node => {
         if (!taskIds.has(node.dataset.id)) {
             node.style.opacity = '0';
@@ -164,9 +163,9 @@ function syncTaskList(containerId, tasks, showProgress = false, showCancel = fal
         }
     });
 
-    // Patch or create new nodes
     tasks.forEach(task => {
         let node = container.querySelector(`.task-card[data-id="${task.id}"]`);
+        const pMeta = PRIORITY_MAP[task.priority] || PRIORITY_MAP[2];
         
         if (!node) {
             node = document.createElement('div');
@@ -174,7 +173,10 @@ function syncTaskList(containerId, tasks, showProgress = false, showCancel = fal
             node.dataset.id = task.id;
             node.innerHTML = `
                 <div class="task-row">
-                    <span class="task-title">${task.name}</span>
+                    <div class="task-info">
+                        <span class="p-badge ${pMeta.class}">${pMeta.label}</span>
+                        <span class="task-title">${task.name}</span>
+                    </div>
                     <div class="task-actions">
                         <span class="task-meta-val"></span>
                         ${showCancel ? `<button class="task-cancel" onclick="cancelTask('${task.id}')">✕</button>` : ""}
