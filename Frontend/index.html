@@ -3,17 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thread Management Visualizer | Efficient Task Simulation</title>
+    <title>High Performance Thread Visualizer</title>
     
-    <!-- Meta Tags -->
-    <meta name="description" content="A real-time visualization tool for thread management, showing waiting queues, running tasks, and completion tracking.">
-    <meta name="keywords" content="thread management, visualizer, operating system, simulation, interactive tool">
-    <meta name="author" content="Thread Management Library Team">
-    
-    <!-- Open Graph / Social Media -->
-    <meta property="og:title" content="Thread Management Visualizer">
-    <meta property="og:description" content="Interactive visualization of multi-threaded task management.">
-    <meta property="og:type" content="website">
+    <meta name="description" content="A scalable thread management library visualizer with real-time performance metrics and dynamic concurrency tuning.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,19 +18,27 @@
 
     <div class="layout-wrapper">
         <header>
-            <h1>Thread Management <span>Visualizer</span></h1>
-            <p>Simulate and observe scalable task distribution in real-time.</p>
+            <h1>Scalable Thread <span>Manager</span></h1>
+            <p>High-Performance Computing Library Visualizer</p>
         </header>
 
         <main>
             <section class="controls-card">
                 <div class="input-group">
-                    <input id="taskInput" type="text" placeholder="Enter Task Name..." aria-label="Task Name">
-                    <button id="addBtn" onclick="addTask()" class="btn-primary">Add Task</button>
+                    <input id="taskInput" type="text" placeholder="New Task Name..." aria-label="Task Name">
+                    <button onclick="addTask()" class="btn-primary">Add Task</button>
                 </div>
+                
+                <div class="config-group">
+                    <div class="slider-container">
+                        <label for="concurrencySlider">Threads: <span id="concurrencyValue">3</span></label>
+                        <input type="range" id="concurrencySlider" min="1" max="20" value="3" oninput="updateConcurrency(this.value)">
+                    </div>
+                </div>
+
                 <div class="action-group">
-                    <button onclick="startSimulation()" class="btn-success">Start Simulation</button>
-                    <button onclick="resetAll()" class="btn-outline">Reset All</button>
+                    <button onclick="startSimulation()" class="btn-success">Start Threads</button>
+                    <button onclick="resetAll()" class="btn-outline">Reset Library</button>
                 </div>
             </section>
 
@@ -46,7 +46,7 @@
                 <div class="box queue-box">
                     <div class="box-header">
                         <span class="status-dot warning"></span>
-                        <h3>Waiting Queue</h3>
+                        <h3>Queue</h3>
                     </div>
                     <div id="queue" class="task-list"></div>
                 </div>
@@ -54,7 +54,7 @@
                 <div class="box running-box">
                     <div class="box-header">
                         <span class="status-dot success"></span>
-                        <h3>Running Tasks</h3>
+                        <h3>Pool Workers</h3>
                     </div>
                     <div id="running" class="task-list"></div>
                 </div>
@@ -62,7 +62,7 @@
                 <div class="box completed-box">
                     <div class="box-header">
                         <span class="status-dot info"></span>
-                        <h3>Completed Tasks</h3>
+                        <h3>Finished</h3>
                     </div>
                     <div id="completed" class="task-list"></div>
                 </div>
@@ -70,18 +70,29 @@
 
             <section class="stats-dashboard">
                 <div class="stat-card">
-                    <span class="stat-label">Total Tasks</span>
+                    <span class="stat-label">Total Volume</span>
                     <span id="total" class="stat-value">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Efficiency</span>
-                    <span id="done" class="stat-value">0</span>
+                    <span class="stat-label">TPM (Throughput)</span>
+                    <span id="throughput" class="stat-value">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Avg. Latency</span>
+                    <span id="latency" class="stat-value">0s</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">System Load</span>
+                    <div class="load-bar-container">
+                        <div id="loadBar" class="load-bar" style="width: 0%"></div>
+                    </div>
+                    <span id="loadText" class="stat-value-sm">0%</span>
                 </div>
             </section>
         </main>
 
         <footer>
-            <p>&copy; 2026 Scalable Thread Management Library. All rights reserved.</p>
+            <p>&copy; 2026 Scalable Thread Management Library | High-Performance Computing Edition</p>
         </footer>
     </div>
 

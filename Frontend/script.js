@@ -1,6 +1,5 @@
 /**
- * Thread Management Visualizer - Backend Integrated Logic
- * Handles real-time synchronization with the Python Flask server.
+ * Thread Management Visualizer - HPC Integration
  */
 
 const API_BASE = "http://localhost:5000";
@@ -9,11 +8,10 @@ let runningTasks = [];
 let completedTasks = [];
 
 let pollInterval = null;
-const POLL_RATE = 500; // ms between server state fetches
-const ANIMATION_RATE = 50; // ms for local progress bar interpolation
+const POLL_RATE = 500; 
 
 /**
- * Adds a new task by sending it to the Python backend.
+ * Adds a new task to the HPC backend.
  */
 async function addTask() {
     const input = document.getElementById("taskInput");
@@ -24,152 +22,136 @@ async function addTask() {
     const newTask = {
         id: `task-${Date.now()}`,
         name: taskName,
-        duration: Math.floor(Math.random() * 3000) + 2000 // 2-5s
+        duration: Math.floor(Math.random() * 3000) + 1500 // 1.5 - 4.5s
     };
 
     try {
-        const response = await fetch(`${API_BASE}/add`, {
+        await fetch(`${API_BASE}/add`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newTask)
         });
-
-        if (response.ok) {
-            input.value = "";
-            await fetchStatus(); // Refresh immediately
-        }
-    } catch (error) {
-        console.error("Failed to add task:", error);
-        alert("Backend server is not reachable. Is it running?");
-    }
+        input.value = "";
+        fetchStatus();
+    } catch (e) { console.error("Network Error", e); }
 }
 
 /**
- * Commands the backend to start processing threads and begins polling.
+ * Updates the concurrency limit (ThreadPool size) dynamically.
+ */
+async function updateConcurrency(value) {
+    document.getElementById("concurrencyValue").innerText = value;
+    try {
+        await fetch(`${API_BASE}/config`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ max_workers: parseInt(value) })
+        });
+    } catch (e) { console.error("Config Error", e); }
+}
+
+/**
+ * Starts the simulation polling.
  */
 async function startSimulation() {
     try {
         await fetch(`${API_BASE}/start`);
-        
         if (!pollInterval) {
             pollInterval = setInterval(fetchStatus, POLL_RATE);
-            // Start the local interpolation loop for smooth progress bars
             startLocalInterpolation();
         }
-    } catch (error) {
-        console.error("Failed to start simulation:", error);
-    }
+    } catch (e) { console.error("Start Error", e); }
 }
 
 /**
- * Fetches the current state of all tasks from the server.
+ * Fetches status and performance metrics.
  */
 async function fetchStatus() {
     try {
-        const response = await fetch(`${API_BASE}/status`);
-        const data = await response.json();
+        const res = await fetch(`${API_BASE}/status`);
+        const data = await res.json();
 
-        // Update local state arrays
         taskQueue = data.queue;
         completedTasks = data.completed;
-
-        // Sync running tasks while preserving local interpolation start times
         syncRunningState(data.running);
         
+        updateMetricsUI(data.metrics);
         updateUI();
-    } catch (error) {
-        console.error("Polling error:", error);
-    }
+    } catch (e) { console.error("Status Error", e); }
 }
 
 /**
- * Preserves local start times for running tasks to keep animations smooth.
+ * Updates the new performance metric cards.
+ */
+function updateMetricsUI(metrics) {
+    document.getElementById("throughput").innerText = metrics.throughput;
+    document.getElementById("latency").innerText = `${metrics.avg_latency}s`;
+    
+    // System Load Visualization
+    const loadPercent = Math.round(metrics.system_load * 100);
+    const loadBar = document.getElementById("loadBar");
+    loadBar.style.width = `${loadPercent}%`;
+    document.getElementById("loadText").innerText = `${loadPercent}%`;
+    
+    // Sync slider if changed from elsewhere
+    document.getElementById("concurrencySlider").value = metrics.concurrency;
+    document.getElementById("concurrencyValue").innerText = metrics.concurrency;
+}
+
+/**
+ * Boilerplate for state management & interpolation
  */
 function syncRunningState(newRunningTasks) {
-    const freshRunning = newRunningTasks.map(task => {
+    runningTasks = newRunningTasks.map(task => {
         const existing = runningTasks.find(t => t.id === task.id);
         return {
             ...task,
-            // If already running, keep the local startTime, else mark as just started
             startTime: existing ? existing.startTime : Date.now(),
             progress: existing ? existing.progress : 0
         };
     });
-
-    runningTasks = freshRunning;
 }
 
-/**
- * Smoothly interpolates progress bars on the client side between server polls.
- */
 function startLocalInterpolation() {
     const loop = () => {
         if (!pollInterval) return;
-
-        runningTasks.forEach(task => {
-            const elapsed = Date.now() - task.startTime;
-            task.progress = Math.min(99, (elapsed / task.duration) * 100); // Max 99% until server confirms completion
+        runningTasks.forEach(t => {
+            const elapsed = Date.now() - t.startTime;
+            t.progress = Math.min(99, (elapsed / t.duration) * 100);
         });
-
         updateUI();
         requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
 }
 
-/**
- * Resets both server and client state.
- */
 async function resetAll() {
-    try {
-        await fetch(`${API_BASE}/reset`, { method: "POST" });
-        
-        if (pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = null;
-        }
-
-        taskQueue = [];
-        runningTasks = [];
-        completedTasks = [];
-
-        // Clear the DOM lists
-        ["queue", "running", "completed"].forEach(id => {
-            document.getElementById(id).innerHTML = "";
-        });
-
-        updateUI();
-    } catch (error) {
-        console.error("Failed to reset:", error);
-    }
+    await fetch(`${API_BASE}/reset`, { method: "POST" });
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    taskQueue = []; runningTasks = []; completedTasks = [];
+    updateUI();
+    // Reset Metrics
+    updateMetricsUI({ throughput: 0, avg_latency: 0, system_load: 0, concurrency: 3 });
 }
 
-/**
- * Rendering Logic (Smart DOM Syncing)
- */
 function updateUI() {
     syncTaskList("queue", taskQueue);
     syncTaskList("running", runningTasks, true);
     syncTaskList("completed", completedTasks);
-
-    document.getElementById("total").innerText = 
-        taskQueue.length + runningTasks.length + completedTasks.length;
-    
-    document.getElementById("done").innerText = completedTasks.length;
+    document.getElementById("total").innerText = taskQueue.length + runningTasks.length + completedTasks.length;
 }
 
 function syncTaskList(containerId, tasks, showProgress = false) {
     const container = document.getElementById(containerId);
-    const existingNodes = Array.from(container.querySelectorAll('.task-item'));
+    if (!container) return;
     const taskIds = new Set(tasks.map(t => t.id));
 
-    existingNodes.forEach(node => {
+    Array.from(container.querySelectorAll('.task-item')).forEach(node => {
         if (!taskIds.has(node.dataset.id)) node.remove();
     });
 
     tasks.forEach(task => {
         let node = container.querySelector(`.task-item[data-id="${task.id}"]`);
-        
         if (!node) {
             node = document.createElement('div');
             node.className = 'task-item';
@@ -179,21 +161,16 @@ function syncTaskList(containerId, tasks, showProgress = false) {
                     <span class="task-name">${task.name}</span>
                     <span class="task-percent"></span>
                 </div>
-                <div class="progress-container">
-                    <div class="progress-bar"></div>
-                </div>
+                <div class="progress-container"><div class="progress-bar"></div></div>
             `;
             container.appendChild(node);
         }
-
         if (showProgress) {
-            node.querySelector('.progress-container').style.display = 'block';
             node.querySelector('.progress-bar').style.width = `${task.progress}%`;
             node.querySelector('.task-percent').innerText = `${Math.round(task.progress)}%`;
             node.classList.add('is-running');
         } else {
             node.querySelector('.progress-container').style.display = 'none';
-            node.querySelector('.task-percent').innerText = '';
             node.classList.remove('is-running');
         }
     });
