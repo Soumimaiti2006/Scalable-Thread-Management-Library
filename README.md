@@ -1,51 +1,88 @@
-# Scalable Thread Management Library (HPC Edition)
+# 🌌 Scalable Thread Management Library (HPC Edition)
 
-![HPC Visualizer](https://img.shields.io/badge/Architecture-Managed_Thread_Pool-58a6ff)
+![Architecture](https://img.shields.io/badge/Architecture-Managed_Thread_Pool-00d2ff)
+![Scheduling](https://img.shields.io/badge/Scheduling-Priority_Aware_Min_Heap-9d50bb)
 ![Backend](https://img.shields.io/badge/Backend-Python_Flask-3fb950)
-![Frontend](https://img.shields.io/badge/Frontend-Modern_JS_/_CSS-bc8cff)
+![Status](https://img.shields.io/badge/Status-Project_Completed-00ff88)
 
-A high-performance thread management library designed for efficient task orchestration, real-time synchronization, and granular termination. This project provides a robust framework for handling thousands of concurrent tasks through a managed pool architecture, visualized through a premium desktop-grade dashboard.
+An ultra-premium, industrial-grade thread management toolkit designed for High-Performance Computing (HPC). This library provides sophisticated task orchestration, real-time telemetry, and dynamic concurrency tuning behind a stunning Glassmorphism 2.0 dashboard.
 
-## 🚀 Core Features
+---
 
-- **Managed Thread Pool**: Efficiently processes thousands of tasks using a controlled set of physical worker threads via `concurrent.futures`.
-- **Dynamic Concurrency Tuning**: Real-time adjustment of the thread pool size directly from the UI to match system load.
-- **Advanced Synchronization**: Thread-safe operations using `threading.Lock` and atomic state synchronization between backend and frontend.
-- **Granular Termination**: Supports individual task cancellation (Queue/Running) and global library resets.
-- **Real-time HPC Metrics**:
-  - **Throughput (TPM)**: Tracks successfully completed tasks per minute.
-  - **Avg. Latency**: Measures the average processing time per task.
-  - **System Load**: Visualizes worker thread occupancy.
+## 🚀 Key Capabilities
+
+- **Priority-Aware Orchestration**: Implements a weighted **Min-Heap** scheduler. Tasks with higher criticality (lower numeric value) bypass the standard queue.
+- **Managed Thread Pool**: Built on `concurrent.futures`, optimized for handling thousands of concurrent task requests with zero thread starvation.
+- **Cooperative Task Termination**: Supports granular, mid-execution cancellation of specific tasks through iterative state checks.
+- **HPC Metrics Bento**: Real-time computation of **Throughput (Tasks/Min)**, **Latency (ms)**, and **System Load %**.
+- **Dynamic Tuning**: Adjust the global concurrency limit (1–50 workers) on-the-fly without restarting the orchestration engine.
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.x, Flask, Flask-CORS.
-- **Frontend**: Vanilla JavaScript (ES6+), Modern CSS3 (Glassmorphism), Google Fonts (Inter/Outfit).
-- **Communication**: RESTful API with local polling and client-side interpolation for smooth UI.
-
-## 🏁 Getting Started
-
-### 1. Install Dependencies
-```bash
-pip install flask flask-cors
-```
-
-### 2. Start the Backend
-```bash
-cd Backend
-python app.py
-```
-
-### 3. Launch the Frontend
-Simply open `Frontend/index.html` in any modern web browser.
-
-## 📈 Architecture
-
-The library follows a **Producer-Consumer** pattern:
-1. **Producer**: Tasks are added to the library via the `/add` endpoint.
-2. **Orchestrator**: A dedicated scheduler monitors the queue and dispatches tasks to the **Managed Thread Pool**.
-3. **Consumers**: Worker threads execute the simulation and update state flags.
-4. **Observer**: The frontend polls the `/status` endpoint and uses a high-frequency interpolation engine (50ms) to ensure fluid visual feedback.
+- **Core**: Python 3.x
+- **Library Engine**: `ThreadPoolExecutor`, `heapq`, `threading.Lock`
+- **Interface Layer**: Flask / Flask-CORS
+- **Console Frontend**: Vanilla HTML5 / CSS3 (Glassmorphism 2.0) / Javascript ES6+
 
 ---
-*Targeted for High-Performance Computing (HPC) environments where resource efficiency and real-time monitoring are critical.*
+
+## 📡 API Reference
+
+The library exposes a high-performance REST API on port `5000`.
+
+### 1. Initialize Task
+`POST /add`
+| Payload | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Unique tracking identifier |
+| `name` | String | Human-readable task name |
+| `duration` | Int | Simulated workload duration (ms) |
+| `priority`| Int | `0: CRIT`, `1: HIGH`, `2: NORM`, `3: LOW` |
+
+### 2. Control Engine
+- `GET /start`: Begins processing tasks from the priority heap.
+- `POST /cancel`: `{"id": "task-123"}` — Marks a task for immediate cooperative termination.
+- `POST /config`: `{"max_workers": 10}` — Updates concurrency limits.
+- `POST /reset`: Wipes all state, purges the queue, and resets metrics.
+
+### 3. Monitoring
+- `GET /status`: Returns the full system state, including `queue`, `running`, `completed` lists, and health metrics.
+
+---
+
+## 📐 System Architecture
+
+1.  **Orchestrator (`manager.py`)**: The brain of the library. It manages the Priority Queue, locks state for thread safety, and dispatches workers to the secondary `ThreadPoolExecutor`.
+2.  **API Gateway (`app.py`)**: Facilitates communication between external consumers (like the UI) and the Orchestrator.
+3.  **HPC Console (`Frontend/`)**: A real-time visualizer that uses **Local Interpolation** to provide smooth 60fps progress tracking between server sync intervals.
+
+---
+
+## 🚦 Priority Schema
+
+| Level | Label | Value | Description |
+| :--- | :--- | :--- | :--- |
+| **0** | **CRITICAL** | `0` | Immediate bypass. Processed before all other tasks. |
+| **1** | **HIGH** | `1` | Priority processing for heavy workloads. |
+| **2** | **NORMAL** | `2`| Standard background processing. |
+| **3** | **LOW** | `3` | Background utility tasks (Fill-only). |
+
+---
+
+## 🏁 Setup & Deployment
+
+1.  **Prepare Environment**:
+    ```bash
+    pip install flask flask-cors
+    ```
+2.  **Launch Core**:
+    ```bash
+    python Backend/app.py
+    ```
+3.  **Access Dashboard**:
+    Simply open `Frontend/index.html` in any modern web browser.
+
+---
+*Optimized for mission-critical task orchestration in high-density computing environments.*

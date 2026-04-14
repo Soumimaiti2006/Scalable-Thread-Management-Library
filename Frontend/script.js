@@ -2,7 +2,9 @@
  * HPC Thread Management Console - Integrated Logic
  */
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000"
+    : "https://scalable-thread-management-backend.onrender.com"; // PLACEHOLDER: Replace with your actual Render URL
 let taskQueue = [];
 let runningTasks = [];
 let completedTasks = [];

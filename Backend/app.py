@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from manager import ThreadManager
@@ -7,6 +8,11 @@ CORS(app)
 
 # Initialize the library
 manager = ThreadManager(max_workers=3)
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Keep-alive endpoint for cron-job.org"""
+    return jsonify({"status": "active", "timestamp": os.getlogin() if hasattr(os, 'getlogin') else "server"}), 200
 
 @app.route('/add', methods=['POST'])
 def add_task():
@@ -61,4 +67,5 @@ def reset():
 
 if __name__ == '__main__':
     # Launch the API
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
